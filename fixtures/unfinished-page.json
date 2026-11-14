@@ -1,0 +1,31 @@
+{
+  "claim": {
+    "negative": "no wake",
+    "recipient": "room-a",
+    "session": "s1",
+    "target": 10,
+    "deadline": "2026-11-07T12:00:00Z"
+  },
+  "records": [
+    {
+      "type": "send",
+      "recipient": "room-a",
+      "session": "s1",
+      "id": 10,
+      "acknowledged_at": "2026-11-07T10:00:00Z"
+    },
+    {
+      "type": "poll",
+      "recipient": "room-a",
+      "session": "s1",
+      "started_at": "2026-11-07T10:05:00Z",
+      "finished_at": "2026-11-07T10:06:00Z",
+      "cursor": 1,
+      "page_bound": 20,
+      "returned_ids": [10],
+      "has_more": true,
+      "completed": true,
+      "poller": "running"
+    }
+  ]
+}
