@@ -1,4 +1,4 @@
-# Test choice
+# Deciding rules
 
 A recorded wake prints REJECTED. It does not print NOT COVERED. A gap prints NOT COVERED, and a wake stays a different result.
 

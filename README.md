@@ -23,31 +23,33 @@ It runs offline. It never reads a message's contents. It reads ids, times, page 
 ## Try it
 
 ```
-python silenceproof.py fixtures/covered.json
+python3 silenceproof.py fixtures/covered.json
 ```
 
-Python 3, no extra packages.
+Python 3, no extra packages. On Windows, use `python` instead of `python3`.
+
+To run the tests: `pip install pytest`, then `pytest`.
 
 ## Three examples
 
 **Covered.** `fixtures/covered.json` holds one send and one inbox check. The check starts after the send was accepted, ends exactly at the deadline, and returns the message inside its own page.
 
 ```
-$ python silenceproof.py fixtures/covered.json
+$ python3 silenceproof.py fixtures/covered.json
 COVERED
 ```
 
 **Rejected.** `fixtures/wake.json` is the same send, plus a recorded wake for that message.
 
 ```
-$ python silenceproof.py fixtures/wake.json
+$ python3 silenceproof.py fixtures/wake.json
 REJECTED
 ```
 
 **Not covered.** `fixtures/backward-bound.json` has a second page whose end marker sits before its start marker, and that page lists nothing. An empty page that can't be placed in the chain is a gap, not proof of quiet.
 
 ```
-$ python silenceproof.py fixtures/backward-bound.json
+$ python3 silenceproof.py fixtures/backward-bound.json
 NOT COVERED
 ```
 
