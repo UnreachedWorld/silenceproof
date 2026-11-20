@@ -55,6 +55,8 @@ $ python3 silenceproof.py fixtures/backward-bound.json
 NOT COVERED
 ```
 
+Read the printed verdict; the exit code is 0 for any verdict and 2 for a usage or file error.
+
 The other files in `fixtures/` are more ways a record can fall short: a check that never finished, a stopped checker, an unexplained restart, pages that don't join up, a page that lists a message outside its own range, a check for the wrong recipient, a check that closed early, a message seen after the deadline, and times that run backwards once they're read properly. Each prints NOT COVERED.
 
 ## What your records need

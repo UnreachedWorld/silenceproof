@@ -64,3 +64,81 @@ def test_a_missing_file_prints_a_plain_error(capsys, tmp_path):
     assert captured.out == ""
     assert captured.err == "No such file.\n"
     assert "Traceback" not in captured.err
+
+
+USAGE = "usage: python3 silenceproof.py FILE\n"
+
+
+def test_no_file_prints_usage_and_exits_2(capsys):
+    """No file is a usage error, not a verdict."""
+    code = silenceproof.main(["silenceproof"])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert captured.err == USAGE
+    assert "NOT COVERED" not in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_extra_arguments_print_usage_and_exit_2(capsys):
+    """An extra argument is a usage error, not a verdict."""
+    code = silenceproof.main(["silenceproof", "one.json", "two.json"])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert captured.err == USAGE
+
+
+def test_help_prints_usage_and_exits_2(capsys):
+    """--help is the same usage line, including when it is the only argument."""
+    code = silenceproof.main(["silenceproof", "--help"])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert captured.err == USAGE
+
+
+def test_malformed_json_prints_one_plain_line(capsys, tmp_path):
+    """A file that is not JSON prints one plain line and does not traceback."""
+    bad = tmp_path / "bad.json"
+    bad.write_text("{", encoding="utf-8")
+    code = silenceproof.main(["silenceproof", str(bad)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert captured.err == "not a JSON record file\n"
+    assert "Traceback" not in captured.err
+
+
+def test_a_json_value_that_is_not_a_record_is_refused(capsys, tmp_path):
+    """A JSON list is not a record file, so it gets the same plain line."""
+    bad = tmp_path / "list.json"
+    bad.write_text("[]", encoding="utf-8")
+    code = silenceproof.main(["silenceproof", str(bad)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert captured.err == "not a JSON record file\n"
+    assert "Traceback" not in captured.err
+
+
+def test_each_verdict_exits_zero(capsys):
+    """COVERED, REJECTED and NOT COVERED each print the verdict and exit 0."""
+    expected = (
+        ("covered.json", "COVERED"),
+        ("wake.json", "REJECTED"),
+        ("backward-bound.json", "NOT COVERED"),
+    )
+    for name, word in expected:
+        code = silenceproof.main(["silenceproof", str(FIXTURES / name)])
+        captured = capsys.readouterr()
+        assert code == 0
+        assert captured.out == word + "\n"
+        assert captured.err == ""
+
+
+def test_the_readme_states_the_exit_codes():
+    """The README tells a reader to trust the printed verdict, not the exit code."""
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    line = "Read the printed verdict; the exit code is 0 for any verdict and 2 for a usage or file error."
+    assert text.count(line) == 1

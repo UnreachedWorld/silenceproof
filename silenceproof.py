@@ -233,14 +233,22 @@ def _drained(polls, deadline, target):
 
 
 def main(argv):
-    """Print one word for the record file named on the command line."""
-    if len(argv) != 2:
-        print("NOT COVERED")
+    """Print one verdict, or one plain error line for a bad command or file."""
+    if len(argv) != 2 or argv[1] == "--help" or argv[1].startswith("-"):
+        print("usage: python3 silenceproof.py FILE", file=sys.stderr)
         return 2
     if not Path(argv[1]).is_file():
         print("No such file.", file=sys.stderr)
         return 2
-    print(check(load(argv[1])))
+    try:
+        data = load(argv[1])
+    except json.JSONDecodeError:
+        print("not a JSON record file", file=sys.stderr)
+        return 2
+    if type(data) is not dict:
+        print("not a JSON record file", file=sys.stderr)
+        return 2
+    print(check(data))
     return 0
 
 
