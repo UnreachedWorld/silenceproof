@@ -66,7 +66,7 @@ SilenceProof can only judge what you saved. The easiest start is to copy `fixtur
 - the claim itself: the recipient, the session, the message id and the deadline;
 - a send receipt naming the recipient, the session and the message id, with the time it was accepted;
 - every inbox check for that recipient and session: when it started and finished, where the page started and ended, which ids came back, whether more remained, and whether the checker was still running;
-- any restart, with the saved position it resumed from and the new session it started;
+- any restart, with the saved position it resumed from and the session it resumed in;
 - any wake recorded for that message (if there is one, the answer is REJECTED).
 
 Times: write every time in one claim the same way. Either plain whole numbers (compared as numbers, so 20 comes after 3), or clock times with a time zone (compared as real moments, so the same instant written in two zones counts as the same). A clock time with no zone prints NOT COVERED. The last check must finish at the deadline written exactly as the deadline is written.

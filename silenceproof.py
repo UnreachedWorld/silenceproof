@@ -26,6 +26,8 @@ def check(data):
         return "NOT COVERED"
     if _woke(records, recipient, session, target):
         return "REJECTED"
+    if _wake_gap(records, recipient, session):
+        return "NOT COVERED"
     send = _send(records, recipient, session, target)
     if send is None:
         return "NOT COVERED"
@@ -51,9 +53,43 @@ def check(data):
     return "COVERED"
 
 
+def _whole_text(text):
+    """The whole number in this ASCII decimal, or None when the text is not one."""
+    if type(text) is not str or not text.isascii() or not text.isdigit():
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _same_id(found, target):
+    """True when a wake id is the same whole number as the target, including decimal text."""
+    if type(target) is not int or type(found) is bool:
+        return False
+    if type(found) is int:
+        return found == target
+    number = _whole_text(found)
+    if number is None:
+        return False
+    return number == target
+
+
 def _woke(records, recipient, session, target):
     """A wake record for this target rejects the claim that nothing happened."""
-    return any(_same(record, recipient, session) and record.get("id") == target for record in records if record.get("type") == "wake")
+    return any(_same(record, recipient, session) and _same_id(record.get("id"), target) for record in records if type(record) is dict and record.get("type") == "wake")
+
+
+def _wake_gap(records, recipient, session):
+    """A wake for this claim whose id is not a whole number cannot be checked."""
+    for record in records:
+        if type(record) is not dict or record.get("type") != "wake" or not _same(record, recipient, session):
+            continue
+        found = record.get("id")
+        if type(found) is int or _whole_text(found) is not None:
+            continue
+        return True
+    return False
 
 
 def _send(records, recipient, session, target):
@@ -78,8 +114,9 @@ def _instant(value):
     """A whole number stays a number. A zoned clock time becomes one instant. Anything else is refused."""
     if type(value) is not str or value == "":
         return None
-    if value.isdigit():
-        return ("n", int(value))
+    number = _whole_text(value)
+    if number is not None:
+        return ("n", number)
     text = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
         parsed = datetime.fromisoformat(text)
@@ -176,12 +213,33 @@ def _cursor_already_past(polls, target):
     return any(type(poll.get("cursor")) is int and poll.get("cursor") > target for poll in polls)
 
 
+def _adjacent_poll(records, index, step):
+    """The next poll record in that direction, skipping anything that is not a poll."""
+    point = index + step
+    while 0 <= point < len(records):
+        record = records[point]
+        if type(record) is dict and record.get("type") == "poll":
+            return record
+        point = point + step
+    return None
+
+
 def _restart_gap(records):
-    """A restart with no persisted cursor or no new session boundary is unexplained."""
-    for record in records:
-        if record.get("type") != "restart":
+    """A restart that does not continue the poll on either side is unexplained."""
+    for index, record in enumerate(records):
+        if type(record) is not dict or record.get("type") != "restart":
             continue
-        if record.get("persisted_cursor") is None or not record.get("session_boundary"):
+        cursor = record.get("persisted_cursor")
+        session = record.get("session_boundary")
+        if type(cursor) is not int or type(session) is not str or session == "":
+            return True
+        previous = _adjacent_poll(records, index, -1)
+        following = _adjacent_poll(records, index, 1)
+        if previous is None or following is None:
+            return True
+        if previous.get("page_bound") != cursor or following.get("cursor") != cursor:
+            return True
+        if following.get("session") != session:
             return True
     return False
 
@@ -232,6 +290,22 @@ def _drained(polls, deadline, target):
     return bool(finished) and seen
 
 
+def _record_shape(data):
+    """True when the claim and every record are objects, and page ids are a list."""
+    if type(data) is not dict:
+        return False
+    claim = data.get("claim", {})
+    records = data.get("records", [])
+    if type(claim) is not dict or type(records) is not list:
+        return False
+    for record in records:
+        if type(record) is not dict:
+            return False
+        if "returned_ids" in record and type(record.get("returned_ids")) is not list:
+            return False
+    return True
+
+
 def main(argv):
     """Print one verdict, or one plain error line for a bad command or file."""
     if len(argv) != 2 or argv[1] == "--help" or argv[1].startswith("-"):
@@ -242,10 +316,10 @@ def main(argv):
         return 2
     try:
         data = load(argv[1])
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, UnicodeDecodeError):
         print("not a JSON record file", file=sys.stderr)
         return 2
-    if type(data) is not dict:
+    if not _record_shape(data):
         print("not a JSON record file", file=sys.stderr)
         return 2
     print(check(data))
