@@ -8,7 +8,9 @@ The next page starts where the previous page stopped: its cursor equals the prev
 
 A returned id counts only when it is a whole number from the page cursor up to, and not including, the page bound. An id outside that page, including a target listed after a later cursor, is NOT COVERED.
 
-A page whose bound is smaller than its cursor is NOT COVERED, even when that page lists no ids. A bound equal to its cursor is still allowed.
+A page whose bound is smaller than its cursor is NOT COVERED, even when that page lists no ids. A bound equal to its cursor is still allowed. A page cursor or page bound that is not a whole number is NOT COVERED.
+
+The poller mark is the word running. Stopped, or any other mark, is NOT COVERED.
 
 A whole-number time sorts as that number. The text "20" is after "3". A close earlier than the page it continues is NOT COVERED. Every time in one claim must be the same kind.
 

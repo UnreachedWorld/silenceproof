@@ -162,7 +162,7 @@ def _time_gap(polls, acknowledged_at, deadline):
 
 
 def _poll_gap(polls, acknowledged_at):
-    """A poll that is unfinished, stopped, early, or missing its fields is a gap."""
+    """A poll that is unfinished, not running, early, or missing its fields is a gap."""
     if acknowledged_at is None:
         return True
     for poll in polls:
@@ -170,7 +170,7 @@ def _poll_gap(polls, acknowledged_at):
             return True
         if _earlier(poll.get("started_at"), acknowledged_at):
             return True
-        if poll.get("poller") == "stopped":
+        if poll.get("poller") != "running":
             return True
         if poll.get("completed") is not True:
             return True
@@ -245,18 +245,21 @@ def _restart_gap(records):
 
 
 def _chain_gap(polls):
-    """Each page bound must sit at or beyond its cursor, and the next page must start there."""
+    """Whole-number pages must join, and a later page must not close before the page it continues."""
+    for poll in polls:
+        if type(poll.get("cursor")) is not int or type(poll.get("page_bound")) is not int:
+            return True
     ordered = sorted(polls, key=lambda poll: (_when(poll.get("started_at")), poll.get("cursor")))
     previous = None
     terminals = 0
     for poll in ordered:
-        if type(poll.get("cursor")) is not int or type(poll.get("page_bound")) is not int:
-            return True
         if poll.get("page_bound") < poll.get("cursor"):
             return True
         if _earlier(poll.get("finished_at"), poll.get("started_at")):
             return True
         if previous is not None and poll.get("cursor") != previous.get("page_bound"):
+            return True
+        if previous is not None and _earlier(poll.get("finished_at"), previous.get("finished_at")):
             return True
         if poll.get("has_more") is False:
             terminals = terminals + 1

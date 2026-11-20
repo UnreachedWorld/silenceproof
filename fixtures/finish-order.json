@@ -1,0 +1,57 @@
+{
+  "claim": {
+    "negative": "no wake",
+    "recipient": "room-a",
+    "session": "s1",
+    "target": 10,
+    "deadline": "2026-11-07T12:00:00Z"
+  },
+  "records": [
+    {
+      "type": "send",
+      "recipient": "room-a",
+      "session": "s1",
+      "id": 10,
+      "acknowledged_at": "2026-11-07T10:00:00Z"
+    },
+    {
+      "type": "poll",
+      "recipient": "room-a",
+      "session": "s1",
+      "started_at": "2026-11-07T10:05:00Z",
+      "finished_at": "2026-11-07T11:00:00Z",
+      "cursor": 1,
+      "page_bound": 11,
+      "returned_ids": [10],
+      "has_more": true,
+      "completed": true,
+      "poller": "running"
+    },
+    {
+      "type": "poll",
+      "recipient": "room-a",
+      "session": "s1",
+      "started_at": "2026-11-07T10:40:00Z",
+      "finished_at": "2026-11-07T10:50:00Z",
+      "cursor": 11,
+      "page_bound": 15,
+      "returned_ids": [],
+      "has_more": true,
+      "completed": true,
+      "poller": "running"
+    },
+    {
+      "type": "poll",
+      "recipient": "room-a",
+      "session": "s1",
+      "started_at": "2026-11-07T11:10:00Z",
+      "finished_at": "2026-11-07T12:00:00Z",
+      "cursor": 15,
+      "page_bound": 20,
+      "returned_ids": [],
+      "has_more": false,
+      "completed": true,
+      "poller": "running"
+    }
+  ]
+}
