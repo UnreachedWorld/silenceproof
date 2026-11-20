@@ -10,7 +10,7 @@
 
 An agent says: "I got message 10 by checking my inbox. Nobody had to wake me." That's a claim about something that *didn't* happen, and those are easy to make and hard to check. Maybe the agent really did read it. Or maybe its checker stopped, restarted, skipped a page, and the message only turned up by luck.
 
-SilenceProof reads one saved record file (the send receipt, the inbox checks, any wake or restart) and prints one word:
+SilenceProof reads one saved record file (the send receipt, the inbox checks, any wake or restart) and prints one verdict:
 
 - **COVERED**: the inbox checks' page markers join up with no missing page, the last check finishes at the deadline (written exactly as the deadline is written), one of the checks returned the message, and no wake was recorded for that message. No check for that recipient and session may start before the message was accepted: such a check that starts earlier prints NOT COVERED. Checks for another recipient or another session are not read, so an early one of those does not change the word. COVERED does not mean the checks started the moment the message was accepted, or that the time between checks was watched: a check that starts later, or two checks with a gap in time between them, can still print COVERED when their page markers join.
 - **NOT COVERED**: something is missing or doesn't add up, so the claim can't be backed by these records. This is never treated as success.
@@ -23,6 +23,8 @@ It runs offline. It never reads a message's contents. It reads ids, times, page 
 ## Try it
 
 ```
+git clone https://github.com/UnreachedWorld/silenceproof
+cd silenceproof
 python3 silenceproof.py fixtures/covered.json
 ```
 
@@ -57,11 +59,13 @@ The other files in `fixtures/` are more ways a record can fall short: a check th
 
 ## What your records need
 
-SilenceProof can only judge what you saved. To get COVERED, record:
+SilenceProof can only judge what you saved. The easiest start is to copy `fixtures/covered.json` and change it to match your own records. To get COVERED, record:
 
+- the claim itself: the recipient, the session, the message id and the deadline;
 - a send receipt naming the recipient, the session and the message id, with the time it was accepted;
 - every inbox check for that recipient and session: when it started and finished, where the page started and ended, which ids came back, whether more remained, and whether the checker was still running;
-- any restart, with the saved position it resumed from and the new session it started.
+- any restart, with the saved position it resumed from and the new session it started;
+- any wake recorded for that message (if there is one, the answer is REJECTED).
 
 Times: write every time in one claim the same way. Either plain whole numbers (compared as numbers, so 20 comes after 3), or clock times with a time zone (compared as real moments, so the same instant written in two zones counts as the same). A clock time with no zone prints NOT COVERED. The last check must finish at the deadline written exactly as the deadline is written.
 
