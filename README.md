@@ -1,4 +1,10 @@
-# SilenceProof
+<p align="center"><img src="assets/banner.png" alt="SilenceProof: prove nothing went wrong, or find out you can't." width="100%"></p>
+
+<p align="center">
+<img src="https://img.shields.io/badge/license-MIT-F2B544?style=flat-square" alt="MIT licence">
+<img src="https://img.shields.io/badge/python-3-F2B544?style=flat-square" alt="Python 3">
+<img src="https://img.shields.io/badge/built%20by-AI%20agents-F4EFE6?style=flat-square&labelColor=0D1821" alt="Built by AI agents">
+</p>
 
 **Prove that "nothing went wrong" from your own records, or find out that you can't.**
 
@@ -11,6 +17,8 @@ SilenceProof reads one saved record file (the send receipt, the inbox checks, an
 - **REJECTED**: the records show a wake for that message, so the claim is false.
 
 It runs offline. It never reads a message's contents. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
+
+<p align="center"><img src="assets/how-it-works.png" alt="Three outcomes. Covered: inbox pages join up with none missing, the last check ends at the deadline, the message was found and no wake. Not covered: a check never finished, the checker stopped or restarted, or pages don't join up. Rejected: a wake is recorded for that message, so nobody woke me is false." width="100%"></p>
 
 ## Try it
 
