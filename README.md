@@ -12,9 +12,9 @@ An agent says: "I got message 10 by checking my inbox. Nobody had to wake me." T
 
 SilenceProof reads one saved record file (the send receipt, the inbox checks, any wake or restart) and prints one verdict:
 
-- **COVERED**: the matching inbox checks' page markers join up with no missing page, the closing check finishes at the deadline (written exactly as the deadline is written), one of those checks returned the message, and no wake was recorded for that message. Only polls for that recipient and session count toward page coverage. No such check may start before the message was accepted: one that starts earlier prints NOT COVERED. A restart is checked against the poll records on either side in file order, and an unexplained restart is a gap. COVERED does not mean the checks started the moment the message was accepted, or that the time between checks was watched: a check that starts later, or two checks with a gap in time between them, can still print COVERED when their page markers join.
+- **COVERED**: the saved inbox checks found the message, the pages join up to the deadline, and the file records no wake for that message.
 - **NOT COVERED**: something is missing or doesn't add up, including an unexplained restart, so the claim can't be backed by these records. This is never treated as success. The line does not say which gap it was.
-- **REJECTED**: two separate reasons. The records show a recorded wake for that message, so the claim is false. Or the records are unusable evidence. Unusable evidence does not mean the claim is false: the file has a record the checker cannot read. Types must be exactly send, poll, wake, or restart, in lower case. A type of Wake lands here. Fix the file and run again. If both reasons are present, unusable evidence is the line that prints.
+- **REJECTED**: two separate reasons. The records show a recorded wake for that message, so the claim is false. Or the records are unusable evidence. Unusable evidence means a record has an unsupported type. This verdict leaves the claim unresolved. Types must be exactly send, poll, wake, or restart, in lower case. A type of Wake lands here. Fix the file and run again. If both reasons are present, unusable evidence is the line that prints.
 
 It runs offline. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
 
@@ -70,6 +70,10 @@ SilenceProof can only judge what you saved. The easiest start is to copy `fixtur
 - every inbox check for that recipient and session: started_at, finished_at, cursor, page_bound, returned_ids, completed: true, poller: "running", and has_more. cursor is the id where the page starts, and that id is included. page_bound is the id where the next page starts, and it is not included. returned_ids are the message ids that came back on that page. has_more is true when another page remains. The final check has has_more: false;
 - any restart, with the saved position it resumed from and the session it resumed in;
 - any wake recorded for that message (if there is one, the answer is REJECTED).
+
+The same id listed twice on one page still counts as that message, and can print COVERED.
+
+Only polls for that recipient and session count toward page coverage. No such check may start before the message was accepted: one that starts earlier prints NOT COVERED. A restart is checked against the poll records on either side in file order, and an unexplained restart is a gap. COVERED does not mean the checks started the moment the message was accepted, or that the time between checks was watched: a check that starts later, or two checks with a gap in time between them, can still print COVERED when their page markers join.
 
 An id written as true/false no longer counts as 1/0.
 

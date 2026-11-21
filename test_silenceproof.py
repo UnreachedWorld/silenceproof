@@ -341,14 +341,25 @@ def test_the_readme_states_the_exit_codes():
 
 
 def test_the_readme_names_the_015_lines():
-    """The README names the card limit, the whole verdict line, true/false, and quoted times."""
+    """The README names the plain verdicts and keeps the record rules."""
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     card = "COVERED: The supplied pages support the claim. It can't tell a faked file from a real one."
+    covered = "- **COVERED**: the saved inbox checks found the message, the pages join up to the deadline, and the file records no wake for that message."
+    unusable = "Unusable evidence means a record has an unsupported type. This verdict leaves the claim unresolved."
+    kept = "COVERED does not mean the checks started the moment the message was accepted, or that the time between checks was watched: a check that starts later, or two checks with a gap in time between them, can still print COVERED when their page markers join."
     assert text.count(card) == 1
     assert text.count("Match the whole verdict line.") == 1
     assert text.count("An id written as true/false no longer counts as 1/0.") == 1
     assert text.count("Times were always quoted strings.") == 1
     assert "Times are always quoted strings." not in text
+    assert text.count(covered) == 1
+    assert "the matching inbox checks" not in text
+    assert text.count(unusable) == 1
+    assert "the file has a record the checker cannot read" not in text
+    assert text.count(kept) == 1
+    assert text.index("## What your records need") < text.index(kept)
+    repeated = "The same id listed twice on one page still counts as that message, and can print COVERED."
+    assert text.count(repeated) == 1
 
 
 SEED = 20261120
