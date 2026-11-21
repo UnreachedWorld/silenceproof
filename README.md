@@ -18,7 +18,7 @@ SilenceProof reads one saved record file (the send receipt, the inbox checks, an
 
 It runs offline. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
 
-<p align="center"><img src="assets/how-it-works.png" alt="Four printed verdicts. COVERED: the supplied pages support the claim. NOT COVERED: the supplied records have a gap or conflict. REJECTED: a recorded wake, the log shows a wake for this message. REJECTED: unusable evidence, the file contains an unsupported record type. Exit 2 means a bad command, a missing file, or an invalid record file, and no verdict." width="100%"></p>
+<p align="center"><img src="assets/how-it-works.png" alt="Four printed verdicts. COVERED: The supplied pages support the claim. It can't tell a faked file from a real one. NOT COVERED: the supplied records have a gap or conflict. REJECTED: a recorded wake, the log shows a wake for this message. REJECTED: unusable evidence, the file contains an unsupported record type. Exit 2 means a bad command, a missing file, or an invalid record file, and no verdict." width="100%"></p>
 
 ## Try it
 
@@ -57,6 +57,8 @@ NOT COVERED
 
 Read the printed verdict. The exit code is 0 for any verdict. Exit 2 means no verdict was given. It is a bad command, a missing file, or a file that is not UTF-8 JSON records. Fix the command or the file and run again.
 
+Match the whole verdict line. COVERED sits inside NOT COVERED, so do not search for a word inside the line.
+
 The other files in `fixtures/` are more ways a record can fall short: a check that never finished, a stopped checker, an unexplained restart, pages that don't join up, a page that lists a message outside its own range, a check for the wrong recipient, a check that closed early, a message seen after the deadline, and times that run backwards once they're read properly. `fixtures/text-wake.json` prints REJECTED: a recorded wake. Each of these prints NOT COVERED: `cursor-past.json`, `cursor-range.json`, `early-close.json`, `finish-order.json`, `late-seen.json`, `missing-poll.json`, `mixed-cursor.json`, `odd-digit-wake.json`, `odd-wake.json`, `offset-time.json`, `stopped-poller.json`, `time-shape.json`, `unexplained-restart.json`, `unfinished-page.json`, `unknown-poller.json`, `unlinked-pages.json`, and `unmatched-recipient.json`.
 
 ## What your records need
@@ -69,7 +71,9 @@ SilenceProof can only judge what you saved. The easiest start is to copy `fixtur
 - any restart, with the saved position it resumed from and the session it resumed in;
 - any wake recorded for that message (if there is one, the answer is REJECTED).
 
-Times are always quoted strings. A bare JSON number, such as 20, prints NOT COVERED. The same time written as "20" can print COVERED. Write every time in one claim the same way. Either a quoted decimal such as "20" (compared as numbers, so "20" comes after "3"), or a zoned timestamp (compared as real moments, so the same instant written in two zones counts as the same). A clock time with no zone prints NOT COVERED. Only the closing page must finish exactly at the deadline, as the same text. Any page that runs past the deadline prints NOT COVERED.
+An id written as true/false no longer counts as 1/0.
+
+Times were always quoted strings. A bare JSON number, such as 20, prints NOT COVERED. The same time written as "20" can print COVERED. Write every time in one claim the same way. Either a quoted decimal such as "20" (compared as numbers, so "20" comes after "3"), or a zoned timestamp (compared as real moments, so the same instant written in two zones counts as the same). A clock time with no zone prints NOT COVERED. Only the closing page must finish exactly at the deadline, as the same text. Any page that runs past the deadline prints NOT COVERED.
 
 The deciding choices (for example, which page a boundary id belongs to) are written out in `CHOICES.md`.
 

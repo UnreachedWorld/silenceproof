@@ -340,6 +340,17 @@ def test_the_readme_states_the_exit_codes():
     assert text.count(line) == 1
 
 
+def test_the_readme_names_the_015_lines():
+    """The README names the card limit, the whole verdict line, true/false, and quoted times."""
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    card = "COVERED: The supplied pages support the claim. It can't tell a faked file from a real one."
+    assert text.count(card) == 1
+    assert text.count("Match the whole verdict line.") == 1
+    assert text.count("An id written as true/false no longer counts as 1/0.") == 1
+    assert text.count("Times were always quoted strings.") == 1
+    assert "Times are always quoted strings." not in text
+
+
 SEED = 20261120
 CASES = 480
 
