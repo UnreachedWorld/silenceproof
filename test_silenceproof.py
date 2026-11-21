@@ -362,6 +362,24 @@ def test_the_readme_names_the_015_lines():
     assert text.count(repeated) == 1
 
 
+def test_the_readme_names_the_restart_keys():
+    """The README names both restart keys under What your records need."""
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    needed = text.split("## What your records need", 1)[1]
+    assert needed.count("persisted_cursor") == 1
+    assert needed.count("session_boundary") == 1
+    assert "fixtures/explained-restart.json" in needed
+
+
+def test_an_explained_restart_fixture_prints_covered(capsys):
+    """A saved restart that continues the polls prints COVERED."""
+    code = silenceproof.main(["silenceproof", str(FIXTURES / "explained-restart.json")])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.out == "COVERED\n"
+    assert captured.err == ""
+
+
 SEED = 20261120
 CASES = 480
 

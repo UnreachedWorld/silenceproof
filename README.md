@@ -68,7 +68,7 @@ SilenceProof can only judge what you saved. The easiest start is to copy `fixtur
 - the claim itself: the recipient, the session, the message id and the deadline;
 - a send receipt naming the recipient, the session and the message id, with the time it was accepted;
 - every inbox check for that recipient and session: started_at, finished_at, cursor, page_bound, returned_ids, completed: true, poller: "running", and has_more. cursor is the id where the page starts, and that id is included. page_bound is the id where the next page starts, and it is not included. returned_ids are the message ids that came back on that page. has_more is true when another page remains. The final check has has_more: false;
-- any restart, with the saved position it resumed from and the session it resumed in;
+- any restart: persisted_cursor is the whole-number page bound the previous poll ended on and the next poll starts from, and session_boundary is the session that next poll resumes in. fixtures/explained-restart.json is one restart that prints COVERED;
 - any wake recorded for that message (if there is one, the answer is REJECTED).
 
 The same id listed twice on one page still counts as that message, and can print COVERED.
