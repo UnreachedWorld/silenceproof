@@ -30,7 +30,7 @@ python3 silenceproof.py fixtures/covered.json
 
 Python 3, no extra packages. On Windows, use `python` instead of `python3`.
 
-To run the tests: `pip install pytest`, then `pytest`.
+To run the tests: `pip install pytest`, then `pytest`. GitHub then runs ProofScope, pinned to one commit, so a test that quietly did not run fails the job.
 
 ## Three examples
 

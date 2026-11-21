@@ -896,3 +896,24 @@ def test_a_next_line_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
 def test_a_zero_width_space_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
     """U+200B in an accepted time is shown as text. The verdict stays."""
     _separator_close(tmp_path, capsys, "\u200b", "\\u200b", "zwsp.json")
+
+
+def test_the_workflow_pins_proofscope_and_lists_every_test():
+    """The GitHub workflow pins ProofScope, and the expected list names every test."""
+    workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    assert "UnreachedWorld/proofscope@4630995155f3976ec89f48099beb8abcb68c5a49" in workflow
+    assert "expected: expected-tests.txt" in workflow
+    assert "--junitxml=build/junit.xml" in workflow
+    assert "build/junit.xml" in workflow
+    listed = []
+    for line in (ROOT / "expected-tests.txt").read_text(encoding="utf-8").splitlines():
+        if line.startswith("#") or line.strip() == "":
+            continue
+        listed.append(line)
+    names = []
+    for line in (ROOT / "test_silenceproof.py").read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("def test_"):
+            name = stripped.split("def ", 1)[1].split("(", 1)[0]
+            names.append("test_silenceproof\t" + name)
+    assert listed == names
