@@ -46,6 +46,7 @@ COVERED
 ```
 $ python3 silenceproof.py fixtures/wake.json
 REJECTED: a recorded wake
+wake: message 10 has a recorded wake
 ```
 
 **Not covered.** `fixtures/backward-bound.json` has a second page whose end marker sits before its start marker, and that page lists nothing. An empty page that can't be placed in the chain is a gap, not proof of quiet.
@@ -53,11 +54,52 @@ REJECTED: a recorded wake
 ```
 $ python3 silenceproof.py fixtures/backward-bound.json
 NOT COVERED
+gap: page 20-5 ends before it starts
 ```
 
 Read the printed verdict. The exit code is 0 for any verdict. Exit 2 means no verdict was given. It is a bad command, a missing file, or a file that is not UTF-8 JSON records. Fix the command or the file and run again.
 
 Match the whole verdict line. COVERED sits inside NOT COVERED, so do not search for a word inside the line.
+
+A second line names the check that decided NOT COVERED or REJECTED. COVERED stays one line. Scripts should match only the first line.
+
+The second line is one of these. Where a line names a message, a page, or a time, those are filled in from the file:
+
+- gap: the claim is missing a recipient, session, message or deadline
+- gap: a wake id is not a whole number
+- wake: message 10 has a recorded wake
+- gap: no send receipt for this message
+- gap: more than one send receipt for this message
+- gap: no inbox check for this recipient and session
+- gap: the send has no accepted time
+- gap: an inbox check is missing a page field
+- gap: an inbox check starts before the message was accepted
+- gap: an inbox check was not running
+- gap: an inbox check did not finish
+- gap: a listed id is not a whole number
+- gap: message 10 is listed outside page 50-60
+- gap: a page starts at 50, after message 10, and no page lists it
+- gap: a restart has no whole-number saved position
+- gap: a restart has no session
+- gap: a restart has no inbox check on either side
+- gap: a restart at 10 does not continue the pages on either side
+- gap: a restart resumes in a different session
+- gap: a time is not a quoted number or a zoned timestamp
+- gap: times in this claim are not the same kind
+- gap: a page cursor is not a whole number
+- gap: a page bound is not a whole number
+- gap: page 20-5 ends before it starts
+- gap: page 1-20 finishes before it starts
+- gap: pages 1-20 and 999-1000 do not join
+- gap: page 1-20 starts after page 20-40 in time, so the pages are out of order
+- gap: page 11-15 finishes before page 1-11
+- gap: a page does not say whether more pages remain
+- gap: the pages do not end on one last page
+- gap: page 1-20 runs past the deadline
+- gap: the closing page finishes at 2026-11-07T10:06:00Z, not the deadline
+- gap: the closing time is the same instant but not the same text
+- gap: no page lists this message
+- rejected: a record type is not send, poll, wake, or restart
 
 The other files in `fixtures/` are more ways a record can fall short: a check that never finished, a stopped checker, an unexplained restart, pages that don't join up, a page that lists a message outside its own range, a check for the wrong recipient, a check that closed early, a message seen after the deadline, and times that run backwards once they're read properly. `fixtures/text-wake.json` prints REJECTED: a recorded wake. Each of these prints NOT COVERED: `cursor-past.json`, `cursor-range.json`, `early-close.json`, `finish-order.json`, `late-seen.json`, `missing-poll.json`, `mixed-cursor.json`, `odd-digit-wake.json`, `odd-wake.json`, `offset-time.json`, `stopped-poller.json`, `time-shape.json`, `unexplained-restart.json`, `unfinished-page.json`, `unknown-poller.json`, `unlinked-pages.json`, and `unmatched-recipient.json`.
 

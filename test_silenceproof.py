@@ -56,7 +56,7 @@ def test_a_strange_digit_is_not_covered_and_does_not_crash(capsys):
     code = silenceproof.main(["silenceproof", str(FIXTURES / "odd-digit-wake.json")])
     captured = capsys.readouterr()
     assert code == 0
-    assert captured.out == "NOT COVERED\n"
+    assert captured.out == "NOT COVERED\ngap: a wake id is not a whole number\n"
     assert captured.err == ""
     assert "Traceback" not in captured.out
 
@@ -191,7 +191,7 @@ def test_a_wake_and_unusable_evidence_print_different_reasons(capsys, tmp_path):
     code = silenceproof.main(["silenceproof", str(FIXTURES / "wake.json")])
     captured = capsys.readouterr()
     assert code == 0
-    assert captured.out == "REJECTED: a recorded wake\n"
+    assert captured.out == "REJECTED: a recorded wake\nwake: message 10 has a recorded wake\n"
     data = load("covered.json")
     data["records"].append({"type": "Wake", "recipient": "room-a", "session": "s1", "id": 10})
     path = tmp_path / "near.json"
@@ -199,7 +199,10 @@ def test_a_wake_and_unusable_evidence_print_different_reasons(capsys, tmp_path):
     code = silenceproof.main(["silenceproof", str(path)])
     captured = capsys.readouterr()
     assert code == 0
-    assert captured.out == "REJECTED: unusable evidence\n"
+    assert captured.out == (
+        "REJECTED: unusable evidence\n"
+        "rejected: a record type is not send, poll, wake, or restart\n"
+    )
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "a recorded wake" in readme
     assert "unusable evidence" in readme
@@ -208,15 +211,15 @@ def test_a_wake_and_unusable_evidence_print_different_reasons(capsys, tmp_path):
 def test_each_verdict_exits_zero(capsys):
     """COVERED, REJECTED and NOT COVERED each print the verdict and exit 0."""
     expected = (
-        ("covered.json", "COVERED"),
-        ("wake.json", "REJECTED: a recorded wake"),
-        ("backward-bound.json", "NOT COVERED"),
+        ("covered.json", "COVERED\n"),
+        ("wake.json", "REJECTED: a recorded wake\nwake: message 10 has a recorded wake\n"),
+        ("backward-bound.json", "NOT COVERED\ngap: page 20-5 ends before it starts\n"),
     )
     for name, word in expected:
         code = silenceproof.main(["silenceproof", str(FIXTURES / name)])
         captured = capsys.readouterr()
         assert code == 0
-        assert captured.out == word + "\n"
+        assert captured.out == word
         assert captured.err == ""
 
 
@@ -328,7 +331,7 @@ def test_mixed_cursor_types_do_not_crash(capsys):
     code = silenceproof.main(["silenceproof", str(FIXTURES / "mixed-cursor.json")])
     captured = capsys.readouterr()
     assert code == 0
-    assert captured.out == "NOT COVERED\n"
+    assert captured.out == "NOT COVERED\ngap: a page cursor is not a whole number\n"
     assert captured.err == ""
     assert "Traceback" not in captured.out
 
@@ -360,6 +363,53 @@ def test_the_readme_names_the_015_lines():
     assert text.index("## What your records need") < text.index(kept)
     repeated = "The same id listed twice on one page still counts as that message, and can print COVERED."
     assert text.count(repeated) == 1
+    second = "A second line names the check that decided NOT COVERED or REJECTED. COVERED stays one line."
+    assert text.count(second) == 1
+    assert text.count("Scripts should match only the first line.") == 1
+    reasons = (
+        "gap: the claim is missing a recipient, session, message or deadline",
+        "gap: a wake id is not a whole number",
+        "wake: message 10 has a recorded wake",
+        "gap: no send receipt for this message",
+        "gap: more than one send receipt for this message",
+        "gap: no inbox check for this recipient and session",
+        "gap: the send has no accepted time",
+        "gap: an inbox check is missing a page field",
+        "gap: an inbox check starts before the message was accepted",
+        "gap: an inbox check was not running",
+        "gap: an inbox check did not finish",
+        "gap: a listed id is not a whole number",
+        "gap: message 10 is listed outside page 50-60",
+        "gap: a page starts at 50, after message 10, and no page lists it",
+        "gap: a restart has no whole-number saved position",
+        "gap: a restart has no session",
+        "gap: a restart has no inbox check on either side",
+        "gap: a restart at 10 does not continue the pages on either side",
+        "gap: a restart resumes in a different session",
+        "gap: a time is not a quoted number or a zoned timestamp",
+        "gap: times in this claim are not the same kind",
+        "gap: a page cursor is not a whole number",
+        "gap: a page bound is not a whole number",
+        "gap: page 20-5 ends before it starts",
+        "gap: page 1-20 finishes before it starts",
+        "gap: pages 1-20 and 999-1000 do not join",
+        "gap: page 1-20 starts after page 20-40 in time, so the pages are out of order",
+        "gap: page 11-15 finishes before page 1-11",
+        "gap: a page does not say whether more pages remain",
+        "gap: the pages do not end on one last page",
+        "gap: page 1-20 runs past the deadline",
+        "gap: the closing page finishes at 2026-11-07T10:06:00Z, not the deadline",
+        "gap: the closing time is the same instant but not the same text",
+        "gap: no page lists this message",
+        "rejected: a record type is not send, poll, wake, or restart",
+    )
+    shown_twice = {
+        "wake: message 10 has a recorded wake",
+        "gap: page 20-5 ends before it starts",
+    }
+    for reason in reasons:
+        expect = 2 if reason in shown_twice else 1
+        assert text.count(reason) == expect, reason
 
 
 def test_the_readme_names_the_restart_keys():
@@ -378,6 +428,117 @@ def test_an_explained_restart_fixture_prints_covered(capsys):
     assert code == 0
     assert captured.out == "COVERED\n"
     assert captured.err == ""
+
+
+REASONS = {
+    "backward-bound.json": "NOT COVERED\ngap: page 20-5 ends before it starts\n",
+    "covered.json": "COVERED\n",
+    "cursor-past.json": "NOT COVERED\ngap: a page starts at 50, after message 10, and no page lists it\n",
+    "cursor-range.json": "NOT COVERED\ngap: message 10 is listed outside page 50-60\n",
+    "early-close.json": "NOT COVERED\ngap: the closing page finishes at 2026-11-07T10:06:00Z, not the deadline\n",
+    "explained-restart.json": "COVERED\n",
+    "finish-order.json": "NOT COVERED\ngap: page 11-15 finishes before page 1-11\n",
+    "late-seen.json": "NOT COVERED\ngap: message 10 is listed outside page 20-40\n",
+    "missing-poll.json": "NOT COVERED\ngap: an inbox check did not finish\n",
+    "mixed-cursor.json": "NOT COVERED\ngap: a page cursor is not a whole number\n",
+    "odd-digit-wake.json": "NOT COVERED\ngap: a wake id is not a whole number\n",
+    "odd-wake.json": "NOT COVERED\ngap: a wake id is not a whole number\n",
+    "offset-time.json": "NOT COVERED\ngap: page 1-20 starts after page 20-40 in time, so the pages are out of order\n",
+    "stopped-poller.json": "NOT COVERED\ngap: an inbox check was not running\n",
+    "text-wake.json": "REJECTED: a recorded wake\nwake: message 10 has a recorded wake\n",
+    "time-shape.json": "NOT COVERED\ngap: page 1-20 starts after page 20-40 in time, so the pages are out of order\n",
+    "unexplained-restart.json": "NOT COVERED\ngap: a restart has no whole-number saved position\n",
+    "unfinished-page.json": "NOT COVERED\ngap: the pages do not end on one last page\n",
+    "unknown-poller.json": "NOT COVERED\ngap: an inbox check was not running\n",
+    "unlinked-pages.json": "NOT COVERED\ngap: pages 1-20 and 999-1000 do not join\n",
+    "unmatched-recipient.json": "NOT COVERED\ngap: no inbox check for this recipient and session\n",
+    "wake.json": "REJECTED: a recorded wake\nwake: message 10 has a recorded wake\n",
+}
+
+
+def _covered_copy(tmp_path, name, change):
+    """One changed copy of the covered fixture."""
+    data = load("covered.json")
+    change(data)
+    path = tmp_path / name
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def test_two_send_receipts_name_the_extra_receipt(tmp_path, capsys):
+    """Two matching send receipts are not the same as no receipt."""
+    def change(data):
+        data["records"].insert(0, dict(data["records"][0]))
+    path = _covered_copy(tmp_path, "two-sends.json", change)
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert captured.out == "NOT COVERED\ngap: more than one send receipt for this message\n"
+    assert silenceproof.check(json.loads(path.read_text(encoding="utf-8"))) == "NOT COVERED"
+
+
+def test_a_text_id_on_the_page_is_not_called_outside(tmp_path, capsys):
+    """A text id inside the page is not a whole number, so it is not a range gap."""
+    def change(data):
+        data["records"][1]["returned_ids"] = ["10"]
+    path = _covered_copy(tmp_path, "text-id.json", change)
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert captured.out == "NOT COVERED\ngap: a listed id is not a whole number\n"
+    assert silenceproof.check(json.loads(path.read_text(encoding="utf-8"))) == "NOT COVERED"
+
+
+def test_the_same_instant_with_different_text_names_the_text(tmp_path, capsys):
+    """The same instant spelled +00:00 against Z is a text mismatch, not a different time."""
+    def change(data):
+        data["records"][1]["finished_at"] = "2026-11-07T12:00:00+00:00"
+    path = _covered_copy(tmp_path, "deadline-text.json", change)
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert captured.out == "NOT COVERED\ngap: the closing time is the same instant but not the same text\n"
+    assert silenceproof.check(json.loads(path.read_text(encoding="utf-8"))) == "NOT COVERED"
+
+
+def test_an_earlier_empty_page_after_the_close_stays_covered(tmp_path, capsys):
+    """An earlier empty page written after the closing page stays covered."""
+    def change(data):
+        closing = data["records"][1]
+        empty = dict(closing)
+        empty["started_at"] = "2026-11-07T10:04:00Z"
+        empty["finished_at"] = "2026-11-07T10:04:00Z"
+        empty["cursor"] = 1
+        empty["page_bound"] = 1
+        empty["returned_ids"] = []
+        empty["has_more"] = True
+        data["records"].append(empty)
+    path = _covered_copy(tmp_path, "empty-before.json", change)
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert captured.out == "COVERED\n"
+    assert silenceproof.check(json.loads(path.read_text(encoding="utf-8"))) == "COVERED"
+
+
+def test_every_fixture_names_the_deciding_check(capsys):
+    """Every fixture keeps its verdict on the first line and names the check on the next."""
+    names = sorted(path.name for path in FIXTURES.glob("*.json"))
+    assert names == sorted(REASONS)
+    for name in names:
+        code = silenceproof.main(["silenceproof", str(FIXTURES / name)])
+        captured = capsys.readouterr()
+        assert code == 0
+        assert captured.err == ""
+        assert captured.out == REASONS[name]
+        first = captured.out.splitlines()[0]
+        assert first in ("COVERED", "NOT COVERED", "REJECTED: a recorded wake", "REJECTED: unusable evidence")
+        if first == "COVERED":
+            assert captured.out == "COVERED\n"
 
 
 SEED = 20261120
@@ -684,3 +845,54 @@ def test_a_seeded_gap_or_wake_never_prints_covered():
             _save_break(data, index, spoil.__name__, f"raised {type(error).__name__}")
         if word != expected:
             _save_break(data, index, spoil.__name__, f"printed {word} expected {expected}")
+
+
+def test_a_line_break_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
+    """An accepted time with a line break is shown on one reason line. The verdict stays."""
+    def change(data):
+        data["records"][1]["finished_at"] = "2026-11-07T10:06:00\nZ"
+    path = _covered_copy(tmp_path, "early-break.json", change)
+    before = path.read_bytes()
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert path.read_bytes() == before
+    assert code == 0
+    assert captured.err == ""
+    assert captured.out == "NOT COVERED\ngap: the closing page finishes at 2026-11-07T10:06:00\\nZ, not the deadline\n"
+    assert silenceproof.check(json.loads(path.read_text(encoding="utf-8"))) == "NOT COVERED"
+
+
+def _separator_close(tmp_path, capsys, mark, shown, name):
+    """One accepted close time with a non-printable separator stays one reason line."""
+    def change(data):
+        data["records"][1]["finished_at"] = "2026-11-07" + mark + "10:06:00Z"
+    path = _covered_copy(tmp_path, name, change)
+    before = path.read_bytes()
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert path.read_bytes() == before
+    assert mark in json.loads(path.read_text(encoding="utf-8"))["records"][1]["finished_at"]
+    assert code == 0
+    assert captured.err == ""
+    assert captured.out == "NOT COVERED\ngap: the closing page finishes at 2026-11-07" + shown + "10:06:00Z, not the deadline\n"
+    assert silenceproof.check(json.loads(path.read_text(encoding="utf-8"))) == "NOT COVERED"
+
+
+def test_a_line_separator_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
+    """U+2028 in an accepted time is shown as text. The verdict stays."""
+    _separator_close(tmp_path, capsys, "\u2028", "\\u2028", "line-sep.json")
+
+
+def test_a_paragraph_separator_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
+    """U+2029 in an accepted time is shown as text. The verdict stays."""
+    _separator_close(tmp_path, capsys, "\u2029", "\\u2029", "para-sep.json")
+
+
+def test_a_next_line_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
+    """U+0085 in an accepted time is shown as text. The verdict stays."""
+    _separator_close(tmp_path, capsys, "\u0085", "\\u0085", "nel.json")
+
+
+def test_a_zero_width_space_in_a_time_stays_on_one_reason_line(tmp_path, capsys):
+    """U+200B in an accepted time is shown as text. The verdict stays."""
+    _separator_close(tmp_path, capsys, "\u200b", "\\u200b", "zwsp.json")
