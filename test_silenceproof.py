@@ -28,6 +28,28 @@ def test_a_text_wake_id_for_the_target_is_rejected():
     assert silenceproof.check(load("text-wake.json")) == "REJECTED"
 
 
+def test_json_true_is_not_a_send_id():
+    """JSON true is not the whole number 1, so the send does not match."""
+    data = load("covered.json")
+    data["claim"]["target"] = 1
+    data["records"][0]["id"] = True
+    data["records"][1]["returned_ids"] = [1]
+    assert silenceproof.check(data) == "NOT COVERED"
+
+
+def test_an_unknown_or_near_miss_type_is_rejected():
+    """A record type other than the known words rejects the claim."""
+    for mark in ("Wake", "wake ", "note"):
+        data = load("covered.json")
+        data["records"].append({
+            "type": mark,
+            "recipient": "room-a",
+            "session": "s1",
+            "id": 10,
+        })
+        assert silenceproof.check(data) == "REJECTED", mark
+
+
 def test_a_strange_digit_is_not_covered_and_does_not_crash(capsys):
     """A digit that int() refuses prints NOT COVERED and no traceback."""
     assert silenceproof.check(load("odd-digit-wake.json")) == "NOT COVERED"
@@ -164,11 +186,30 @@ def test_a_json_value_that_is_not_a_record_is_refused(capsys, tmp_path):
     assert "Traceback" not in captured.err
 
 
+def test_a_wake_and_unusable_evidence_print_different_reasons(capsys, tmp_path):
+    """A recorded wake and a bad record type are two REJECTED reasons."""
+    code = silenceproof.main(["silenceproof", str(FIXTURES / "wake.json")])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.out == "REJECTED: a recorded wake\n"
+    data = load("covered.json")
+    data["records"].append({"type": "Wake", "recipient": "room-a", "session": "s1", "id": 10})
+    path = tmp_path / "near.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    code = silenceproof.main(["silenceproof", str(path)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.out == "REJECTED: unusable evidence\n"
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "a recorded wake" in readme
+    assert "unusable evidence" in readme
+
+
 def test_each_verdict_exits_zero(capsys):
     """COVERED, REJECTED and NOT COVERED each print the verdict and exit 0."""
     expected = (
         ("covered.json", "COVERED"),
-        ("wake.json", "REJECTED"),
+        ("wake.json", "REJECTED: a recorded wake"),
         ("backward-bound.json", "NOT COVERED"),
     )
     for name, word in expected:
@@ -295,7 +336,7 @@ def test_mixed_cursor_types_do_not_crash(capsys):
 def test_the_readme_states_the_exit_codes():
     """The README tells a reader to trust the printed verdict, not the exit code."""
     text = (ROOT / "README.md").read_text(encoding="utf-8")
-    line = "Read the printed verdict; the exit code is 0 for any verdict and 2 for a usage or file error."
+    line = "Read the printed verdict. The exit code is 0 for any verdict. Exit 2 means no verdict was given. It is a bad command, a missing file, or a file that is not UTF-8 JSON records. Fix the command or the file and run again."
     assert text.count(line) == 1
 
 

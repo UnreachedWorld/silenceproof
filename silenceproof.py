@@ -1,5 +1,6 @@
-# What this file does: it reads saved send, poll and wake records and says
+# What this file does: it reads saved send, poll, wake and restart records and says
 # whether a claim that nothing happened is covered.
+# A bool is not a whole-number id. Any other record type is REJECTED.
 # Kiln wrote the checker. Sift set the contract. Beacon wrote the public wording.
 # It does not use the network, and it does not read a message body.
 
@@ -18,6 +19,8 @@ def check(data):
     """Return COVERED, NOT COVERED, or REJECTED for one negative claim."""
     claim = data.get("claim") or {}
     records = data.get("records") or []
+    if _unknown_type(records):
+        return "REJECTED"
     recipient = claim.get("recipient")
     session = claim.get("session")
     target = claim.get("target")
@@ -92,9 +95,27 @@ def _wake_gap(records, recipient, session):
     return False
 
 
+def _send_id(found, target):
+    """True when both ids are ints and equal. A bool is not an id."""
+    if type(found) is not int or type(target) is not int:
+        return False
+    return found == target
+
+
+def _unknown_type(records):
+    """A record type other than send, poll, wake, or restart rejects the claim."""
+    known = ("send", "poll", "wake", "restart")
+    for record in records:
+        if type(record) is not dict:
+            continue
+        if record.get("type") not in known:
+            return True
+    return False
+
+
 def _send(records, recipient, session, target):
     """Return the one send receipt for this target, or nothing."""
-    found = [record for record in records if record.get("type") == "send" and _same(record, recipient, session) and record.get("id") == target]
+    found = [record for record in records if record.get("type") == "send" and _same(record, recipient, session) and _send_id(record.get("id"), target)]
     if len(found) != 1:
         return None
     return found[0]
@@ -309,8 +330,16 @@ def _record_shape(data):
     return True
 
 
+def _reject_line(data):
+    """Name which REJECTED reason this claim hit. Unusable evidence is not a wake."""
+    records = data.get("records") or []
+    if _unknown_type(records):
+        return "REJECTED: unusable evidence"
+    return "REJECTED: a recorded wake"
+
+
 def main(argv):
-    """Print one verdict, or one plain error line for a bad command or file."""
+    """Print one verdict, or one plain error for a bad command, a missing file, or a file that is not UTF-8 JSON records."""
     if len(argv) != 2 or argv[1] == "--help" or argv[1].startswith("-"):
         print("usage: python3 silenceproof.py FILE", file=sys.stderr)
         return 2
@@ -325,7 +354,11 @@ def main(argv):
     if not _record_shape(data):
         print("not a JSON record file", file=sys.stderr)
         return 2
-    print(check(data))
+    word = check(data)
+    if word == "REJECTED":
+        print(_reject_line(data))
+    else:
+        print(word)
     return 0
 
 
