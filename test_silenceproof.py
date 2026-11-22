@@ -366,6 +366,17 @@ def test_the_readme_names_the_015_lines():
     second = "A second line names the check that decided NOT COVERED or REJECTED. COVERED stays one line."
     assert text.count(second) == 1
     assert text.count("Scripts should match only the first line.") == 1
+    assert text.count("The line does not say which gap it was.") == 0
+    assert text.count("The first line does not say which gap it was; a second line names the check.") == 1
+    local = "\n".join((
+        "git clone https://github.com/UnreachedWorld/proofscope ../proofscope",
+        "git -C ../proofscope checkout 4630995155f3976ec89f48099beb8abcb68c5a49",
+        "python3 -m pytest test_silenceproof.py --junitxml=build/junit.xml",
+        "python3 ../proofscope/proofscope.py --expected expected-tests.txt --results build/junit.xml",
+    ))
+    assert text.count(local) == 1
+    assert "python3 proofscope.py --expected expected-tests.txt --results build/junit.xml" not in text
+    assert "python -m pytest" not in text
     reasons = (
         "gap: the claim is missing a recipient, session, message or deadline",
         "gap: a wake id is not a whole number",

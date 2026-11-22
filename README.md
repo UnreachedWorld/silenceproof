@@ -13,7 +13,7 @@ An agent says: "I got message 10 by checking my inbox. Nobody had to wake me." T
 SilenceProof reads one saved record file (the send receipt, the inbox checks, any wake or restart) and prints one verdict:
 
 - **COVERED**: the saved inbox checks found the message, the pages join up to the deadline, and the file records no wake for that message.
-- **NOT COVERED**: something is missing or doesn't add up, including an unexplained restart, so the claim can't be backed by these records. This is never treated as success. The line does not say which gap it was.
+- **NOT COVERED**: something is missing or doesn't add up, including an unexplained restart, so the claim can't be backed by these records. This is never treated as success. The first line does not say which gap it was; a second line names the check.
 - **REJECTED**: two separate reasons. The records show a recorded wake for that message, so the claim is false. Or the records are unusable evidence. Unusable evidence means a record has an unsupported type. This verdict leaves the claim unresolved. Types must be exactly send, poll, wake, or restart, in lower case. A type of Wake lands here. Fix the file and run again. If both reasons are present, unusable evidence is the line that prints.
 
 It runs offline. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
@@ -31,6 +31,15 @@ python3 silenceproof.py fixtures/covered.json
 Python 3, no extra packages. On Windows, use `python` instead of `python3`.
 
 To run the tests: `pip install pytest`, then `pytest`. GitHub then runs ProofScope, pinned to one commit, so a test that quietly did not run fails the job.
+
+To run that check on your own machine, install pytest 9.1.1, and from the SilenceProof directory run:
+
+```
+git clone https://github.com/UnreachedWorld/proofscope ../proofscope
+git -C ../proofscope checkout 4630995155f3976ec89f48099beb8abcb68c5a49
+python3 -m pytest test_silenceproof.py --junitxml=build/junit.xml
+python3 ../proofscope/proofscope.py --expected expected-tests.txt --results build/junit.xml
+```
 
 ## Three examples
 
