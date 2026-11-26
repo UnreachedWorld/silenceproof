@@ -1,70 +1,27 @@
-<p align="center"><img src="assets/banner.png" alt="SilenceProof: check whether the supplied records support an inbox read without a recorded wake." width="100%"></p>
+<p align="center"><img src="assets/banner.png" alt="Checks a claim that an agent got a message by checking its inbox, with nobody waking it. One record file in, one verdict out. Proposed and voted on by our AI agents, built by them." width="100%"></p>
 
 <p align="center">
 <img src="https://img.shields.io/badge/license-MIT-F2B544?style=flat-square" alt="MIT licence">
 <img src="https://img.shields.io/badge/python-3-F2B544?style=flat-square" alt="Python 3">
+<img src="https://img.shields.io/github/actions/workflow/status/UnreachedWorld/silenceproof/tests.yml?branch=main&style=flat-square&label=tests" alt="Tests">
 <img src="https://img.shields.io/badge/built%20by-AI%20agents-F4EFE6?style=flat-square&labelColor=0D1821" alt="Built by AI agents">
 </p>
 
-**Check whether the supplied records support an inbox read without a recorded wake.**
+**Checks a claim that an agent got a message by checking its inbox, with nobody waking it. One record file in, one verdict out. Proposed and voted on by our AI agents, built by them.**
 
-An agent says: "I got message 10 by checking my inbox. Nobody had to wake me." That's a claim about something that *didn't* happen, and those are easy to make and hard to check. Maybe the agent really did read it. Or maybe its checker stopped, restarted, skipped a page, and the message only turned up by luck. SilenceProof can assess the supplied page chain.
+SilenceProof reads one saved record file (the send receipt, the inbox checks, any wake or restart) and prints one verdict.
 
-SilenceProof reads one saved record file (the send receipt, the inbox checks, any wake or restart) and prints one verdict:
+You need it when those records are already saved and you want them to support or refuse the claim.
+
+An agent says: "I got message 10 by checking my inbox. Nobody had to wake me." That's a claim about something that didn't happen, and those are easy to make and hard to check. Maybe the agent really did read it. Or maybe its checker stopped, restarted, skipped a page, and the message only turned up by luck. SilenceProof can assess the supplied page chain.
+
+It runs offline. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
+
+## What it catches
 
 - **COVERED**: the saved inbox checks found the message, the pages join up to the deadline, and the file records no wake for that message.
 - **NOT COVERED**: something is missing or doesn't add up, including an unexplained restart, so the claim can't be backed by these records. This is never treated as success. The first line does not say which gap it was; a second line names the check.
 - **REJECTED**: two separate reasons. The records show a recorded wake for that message, so the claim is false. Or the records are unusable evidence. Unusable evidence means a record has an unsupported type. This verdict leaves the claim unresolved. Types must be exactly send, poll, wake, or restart, in lower case. A type of Wake lands here. Fix the file and run again. If both reasons are present, unusable evidence is the line that prints.
-
-It runs offline. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
-
-<p align="center"><img src="assets/how-it-works.png" alt="Four printed verdicts. COVERED: The supplied pages support the claim. It can't tell a faked file from a real one. NOT COVERED: the supplied records have a gap or conflict. REJECTED: a recorded wake, the log shows a wake for this message. REJECTED: unusable evidence, the file contains an unsupported record type. Exit 2 means a bad command, a missing file, or an invalid record file, and no verdict." width="100%"></p>
-
-## Try it
-
-```
-git clone https://github.com/UnreachedWorld/silenceproof
-cd silenceproof
-python3 silenceproof.py fixtures/covered.json
-```
-
-Python 3, no extra packages. On Windows, use `python` instead of `python3`.
-
-To run the tests: `pip install pytest`, then `pytest`. GitHub then runs ProofScope, pinned to one commit, so a test that quietly did not run fails the job.
-
-To run that check on your own machine, install pytest 9.1.1, and from the SilenceProof directory run:
-
-```
-git clone https://github.com/UnreachedWorld/proofscope ../proofscope
-git -C ../proofscope checkout 4630995155f3976ec89f48099beb8abcb68c5a49
-python3 -m pytest test_silenceproof.py --junitxml=build/junit.xml
-python3 ../proofscope/proofscope.py --expected expected-tests.txt --results build/junit.xml
-```
-
-## Three examples
-
-**Covered.** `fixtures/covered.json` holds one send and one inbox check. The check starts after the send was accepted, ends exactly at the deadline, and returns the message inside its own page.
-
-```
-$ python3 silenceproof.py fixtures/covered.json
-COVERED
-```
-
-**Rejected.** `fixtures/wake.json` is the same send, plus a recorded wake for that message.
-
-```
-$ python3 silenceproof.py fixtures/wake.json
-REJECTED: a recorded wake
-wake: message 10 has a recorded wake
-```
-
-**Not covered.** `fixtures/backward-bound.json` has a second page whose end marker sits before its start marker, and that page lists nothing. An empty page that can't be placed in the chain is a gap, not proof of quiet.
-
-```
-$ python3 silenceproof.py fixtures/backward-bound.json
-NOT COVERED
-gap: page 20-5 ends before it starts
-```
 
 Read the printed verdict. The exit code is 0 for any verdict. Exit 2 means no verdict was given. It is a bad command, a missing file, or a file that is not UTF-8 JSON records. Fix the command or the file and run again.
 
@@ -76,6 +33,7 @@ The second line is one of these. Where a line names a message, a page, or a time
 
 - gap: the claim is missing a recipient, session, message or deadline
 - gap: a wake id is not a whole number
+
 - wake: message 10 has a recorded wake
 - gap: no send receipt for this message
 - gap: more than one send receipt for this message
@@ -110,6 +68,51 @@ The second line is one of these. Where a line names a message, a page, or a time
 - gap: no page lists this message
 - rejected: a record type is not send, poll, wake, or restart
 
+## Try it in 30 seconds
+
+Python 3, no extra packages. On Windows, use `python` instead of `python3`.
+
+```
+git clone https://github.com/UnreachedWorld/silenceproof
+cd silenceproof
+python3 silenceproof.py fixtures/covered.json
+```
+
+One way to run the tests:
+
+```
+python3 -m pip install pytest
+python3 -m pytest test_silenceproof.py
+```
+
+GitHub then runs ProofScope, pinned to one commit, so a test that quietly did not run fails the job.
+
+## Three examples
+
+**Covered.** `fixtures/covered.json` holds one send and one inbox check. The check starts after the send was accepted, ends exactly at the deadline, and returns the message inside its own page.
+
+```
+$ python3 silenceproof.py fixtures/covered.json
+COVERED
+```
+
+**Rejected.** `fixtures/wake.json` is the same send, plus a recorded wake for that message.
+
+```
+$ python3 silenceproof.py fixtures/wake.json
+REJECTED: a recorded wake
+wake: message 10 has a recorded wake
+```
+
+**Not covered.** `fixtures/backward-bound.json` has a second page whose end marker sits before its start marker, and that page lists nothing. An empty page that can't be placed in the chain is a gap, not proof of quiet.
+
+```
+$ python3 silenceproof.py fixtures/backward-bound.json
+NOT COVERED
+gap: page 20-5 ends before it starts
+```
+
+
 The other files in `fixtures/` are more ways a record can fall short: a check that never finished, a stopped checker, an unexplained restart, pages that don't join up, a page that lists a message outside its own range, a check for the wrong recipient, a check that closed early, a message seen after the deadline, and times that run backwards once they're read properly. `fixtures/text-wake.json` prints REJECTED: a recorded wake. Each of these prints NOT COVERED: `cursor-past.json`, `cursor-range.json`, `early-close.json`, `finish-order.json`, `late-seen.json`, `missing-poll.json`, `mixed-cursor.json`, `odd-digit-wake.json`, `odd-wake.json`, `offset-time.json`, `stopped-poller.json`, `time-shape.json`, `unexplained-restart.json`, `unfinished-page.json`, `unknown-poller.json`, `unlinked-pages.json`, and `unmatched-recipient.json`.
 
 ## What your records need
@@ -132,10 +135,21 @@ Times were always quoted strings. A bare JSON number, such as 20, prints NOT COV
 
 The deciding choices (for example, which page a boundary id belongs to) are written out in `CHOICES.md`.
 
-## What it does not do
+## How it was made
+
+SilenceProof was proposed, voted for and built by AI agents.
+
+The agents that build and test [Unreached](https://unreached.com), a world played by AI agents, each proposed a tool they wished they had. Then they voted: one vote each, never for their own idea.
+
+
+Kiln wrote the checker. Sift set the contract. Beacon wrote this wording. Probe checked it. Flint reviewed the release.
+
+## What it doesn't do
 
 - It can't tell whether your records are true. A faked log can still print COVERED. It can assess the supplied page chain. Records you did not save, such as a watcher log that is not in the file, cannot be judged. It does not show that the records are complete.
 - It doesn't watch anything live. It checks a file after the fact.
 - Checking for gaps in a run of observations isn't a new idea. SilenceProof is a small, strict checker for one common case: "my agent got this message without being woken."
 
-Kiln wrote the checker. Sift set the contract. Beacon wrote this wording. Probe checked it. Flint reviewed the release.
+## License
+
+MIT. See [LICENSE](LICENSE).
