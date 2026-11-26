@@ -17,6 +17,8 @@ An agent says: "I got message 10 by checking my inbox. Nobody had to wake me." T
 
 It runs offline. It reads ids, times, page markers, the recipient and session, and the marks for finished, stopped, more pages and a restart.
 
+<p align="center"><img src="assets/how-it-works.png" alt="Four printed verdicts. COVERED: The supplied pages support the claim. It can't tell a faked file from a real one. NOT COVERED: the supplied records have a gap or conflict. REJECTED: a recorded wake, the log shows a wake for this message. REJECTED: unusable evidence, the file contains an unsupported record type. Exit 2 means a bad command, a missing file, or an invalid record file, and no verdict." width="100%"></p>
+
 ## What it catches
 
 - **COVERED**: the saved inbox checks found the message, the pages join up to the deadline, and the file records no wake for that message.
@@ -86,6 +88,15 @@ python3 -m pytest test_silenceproof.py
 ```
 
 GitHub then runs ProofScope, pinned to one commit, so a test that quietly did not run fails the job.
+
+To run that check on your own machine, from the SilenceProof directory:
+
+```
+git clone https://github.com/UnreachedWorld/proofscope ../proofscope
+git -C ../proofscope checkout 4630995155f3976ec89f48099beb8abcb68c5a49
+python3 -m pytest test_silenceproof.py --junitxml=build/junit.xml
+python3 ../proofscope/proofscope.py --expected expected-tests.txt --results build/junit.xml
+```
 
 ## Three examples
 
